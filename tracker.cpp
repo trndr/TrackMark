@@ -30,6 +30,7 @@ mutex grayFrameMutex;
 int detThreads =1;
 CascadeClassifier cascade;
 VideoCapture capture;
+Size captureSize;
 GoodFeaturesToTrackDetector detector(3, 0.1,  15.0);
 
 vector<Mat> imageBuffer;
@@ -37,6 +38,7 @@ mutex imageBufferMutex;
 int main( int argc, const char** argv ){
   //capture.open(0);
   capture.open(argv[1]);
+  captureSize=Size(capture.get(CV_CAP_PROP_FRAME_WIDTH), capture.get(CV_CAP_PROP_FRAME_HEIGHT));
   cascade.load(argv[2]);
 //  capture.set(CV_CAP_PROP_POS_FRAMES, 1580);
 //  cout << capture.get(CV_CAP_PROP_POS_FRAMES) << endl;
@@ -158,7 +160,7 @@ void detetectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
       std::stringstream sstm;
       sstm << "mask" << numberOfTags++;
       string result = sstm.str();
-      tmpTagRegion.push_back(TagRegion(keyPoint2Point2f(keyPoint), *r, result));
+      tmpTagRegion.push_back(TagRegion(keyPoint2Point2f(keyPoint), *r, result, captureSize));
     }
   }
   for (int region = 0; region < tmpTagRegion.size(); region++){

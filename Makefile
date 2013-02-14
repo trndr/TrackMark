@@ -4,7 +4,7 @@ LIBS=`pkg-config opencv --libs`
 all: run
 
 run: tracker
-	./tracker vlcsnap-2013-02-14-14h15m56s127.png cascades/square2/cascade.xml
+	./tracker ../printerManualRecord.mp4 cascades/square2/cascade.xml
 
 time: tracker
 	time ./tracker ~/Desktop/Tardis2.mp4 cascades/square2/cascade.xml

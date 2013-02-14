@@ -1,32 +1,24 @@
 #include "TagRegion.h"
 #include <highgui.h>
 
-TagRegion::TagRegion(vector<Point2f> points, Rect ROI, string name){
+TagRegion::TagRegion(vector<Point2f> points, Rect ROI, string name, Size matrixSize){
   this->name=name;
   this->pointsOld=points;
   this->points=points;
   this->ROI=ROI;
   this->meanCounter=0;
+  this->matrixSize=matrixSize;
   this->ROI=growRegionOfInterest(ROI, 1.3);
 }
-
+/*
 TagRegion::TagRegion(vector<Point2f> pointsOld, vector<Point2f> points, Rect ROI){
   this->pointsOld=pointsOld;
   this->points=points;
   this->ROI=ROI;
 }
-
+*/
 void TagRegion::update(Mat oldGray, Mat gray){
   this->pointsOld=this->points;
-//  calcOpticalFlowPyrLK(oldGray, gray, this->pointsOld, this->points, this->opticFlowStatus, this->opticFlowErr);
-  /* reduce matrises
-   * move points old to be in matrix
-   *
-   * calcOpicalFlow
-   * calcRect
-   * move points back
-   * move rect
-   * calc size*/
 
   Rect increasedROI=growRegionOfInterest(this->ROI, 5);
   this->ROI.x-=increasedROI.x;
@@ -91,8 +83,8 @@ Rect TagRegion::growRegionOfInterest(Rect original, double factor){
   //cout << "growing ROI" <<endl;
   int x1 = std::max(0.0,((original.x + (1+(double)original.width)/2)-((1+factor*original.width)/2))); 
   int y1 = std::max(0.0,((original.y + (1+(double)original.height)/2)-((1+factor*original.height)/2)));
-  int x2 = std::min(799.0 ,((original.x + (1+(double)original.width)/2)+((1+factor*original.width)/2)));  
-  int y2 = std::min(447.0 ,((original.y + (1+(double)original.height)/2)+((1+factor*original.height)/2)));
+  int x2 = std::min((this->matrixSize.width-1) ,(int)((original.x + (1+(double)original.width)/2)+((1+factor*original.width)/2)));  
+  int y2 = std::min((this->matrixSize.height-1) ,(int)((original.y + (1+(double)original.height)/2)+((1+factor*original.height)/2)));
   return Rect(Point2f(x1, y1), Point2f(x2, y2));
 }
 

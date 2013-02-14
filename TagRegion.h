@@ -16,6 +16,7 @@ class TagRegion{
     vector<Point2f> pointsOld;
 
     int meanValues[5];
+    Size matrixSize;
 
   public:
     String name;
@@ -23,9 +24,9 @@ class TagRegion{
     int size;
     Rect ROI;
 
-  TagRegion(vector<Point2f> pointsOld, vector<Point2f> points, Rect ROI);
-  TagRegion(vector<Point2f> points, Rect ROI);
-  TagRegion(vector<Point2f> points, Rect ROI, string name);
+  //TagRegion(vector<Point2f> pointsOld, vector<Point2f> points, Rect ROI);
+  //TagRegion(vector<Point2f> points, Rect ROI);
+  TagRegion(vector<Point2f> points, Rect ROI, string name, Size matrixSize);
   void update(Mat oldGray, Mat Gray);
   
 
