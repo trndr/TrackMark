@@ -42,6 +42,9 @@ void TagRegion::update(Mat oldGray, Mat gray){
   this->ROI=nextROI;
   this->ROI.x+=increasedROI.x;
   this->ROI.y+=increasedROI.y;
+  this->centre=centreMass(gray(ROI));
+  this->centre.x+=ROI.x;
+  this->centre.y+=ROI.y;
   calculateSize(gray);
 }
 
@@ -86,6 +89,38 @@ Rect TagRegion::growRegionOfInterest(Rect original, double factor){
   int x2 = std::min((this->matrixSize.width-1) ,(int)((original.x + (1+(double)original.width)/2)+((1+factor*original.width)/2)));  
   int y2 = std::min((this->matrixSize.height-1) ,(int)((original.y + (1+(double)original.height)/2)+((1+factor*original.height)/2)));
   return Rect(Point2f(x1, y1), Point2f(x2, y2));
+}
+
+Point2f TagRegion::centreMass(Mat gray){
+  Mat canny;
+  Mat blured;
+  blur(gray, blured, Size(3,3));
+
+  vector<vector<Point> > contours;
+  vector<Vec4i> hierarchy;
+
+  Canny(blured, canny, 10, 20, 3);
+  findContours(canny, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
+
+//  vector<Moments> mu(contours.size() );
+  vector<Moments> mu;
+  for( int i = 0; i < contours.size(); i++ ){
+    if(contourArea(contours[i])>100){
+      mu.push_back(moments(contours[i], false));
+    }
+//    mu[i] = moments( contours[i], false );
+  }
+//  exit(1);
+
+  ///  Get the mass centers:
+  vector<Point2f> mc;//( contours.size() );
+ // vector<Point2f> mcR( contours.size() );
+  for( int i = 0; i < mu.size(); i++ ){
+    Point2f tmp = Point2f( mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 );
+    mc.push_back(tmp);
+  }
+  Point2f mean=accumulate(mc.begin(), mc.end(), Point2f(0.0f,0.0f))*(1.0f/mc.size());
+  return mean;
 }
 
 void TagRegion::calculateSize(Mat gray){

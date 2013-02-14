@@ -8,6 +8,7 @@
 #include <sys/time.h>
 
 #define FPS
+#define timeLoops
 #define showTrack
 
 using namespace cv;
@@ -48,6 +49,7 @@ int main( int argc, const char** argv ){
 #endif
   capture >> frame;
   cvtColor(frame, gray, CV_RGB2GRAY);
+  int play=1;
   while(1){
 #ifdef FPS    
     gettimeofday(&tickM, NULL);
@@ -81,6 +83,9 @@ int main( int argc, const char** argv ){
       rectangle(frame, thing[i].ROI, CV_RGB(255,0,0));
     }
 #endif
+    for (int i=0;i<thing.size();i++){
+      circle(frame, thing[i].centre, 3, CV_RGB(255, 0, 0), -1);
+    }
 #ifdef FPS
     gettimeofday(&tockM, NULL);
     std::stringstream sstm;
@@ -161,6 +166,7 @@ void detetectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
       sstm << "mask" << numberOfTags++;
       string result = sstm.str();
       tmpTagRegion.push_back(TagRegion(keyPoint2Point2f(keyPoint), *r, result, captureSize));
+//      namedWindow(result, CV_WINDOW_NORMAL);
     }
   }
   for (int region = 0; region < tmpTagRegion.size(); region++){

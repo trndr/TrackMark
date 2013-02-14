@@ -18,11 +18,14 @@ class TagRegion{
     int meanValues[5];
     Size matrixSize;
 
+    Point2f centreMass(Mat gray);
+
   public:
     String name;
     vector<Point2f> points;
     int size;
     Rect ROI;
+    Point2f centre;
 
   //TagRegion(vector<Point2f> pointsOld, vector<Point2f> points, Rect ROI);
   //TagRegion(vector<Point2f> points, Rect ROI);
