@@ -10,12 +10,13 @@
 #define FPS
 #define timeLoops
 #define showTrack
+#define SingleThread
 
 using namespace cv;
 using namespace std;
 
 
-void detetectAndTrack();//VideoCapture& capture, CascadeClassifier& cascade);
+void detectAndTrack();//VideoCapture& capture, CascadeClassifier& cascade);
 void updateLoop();
 void displayLoop();
 vector<Point2f> keyPoint2Point2f(vector<KeyPoint> keyPoints);
@@ -57,11 +58,17 @@ int main( int argc, const char** argv ){
     gray.copyTo(oldGray);
     capture >> frame;
     cvtColor(frame, gray, CV_RGB2GRAY);
+#ifdef SingleThread
+    imageBuffer.clear();
+    imageBuffer.push_back(gray);
+    detectAndTrack();
+    updateLoop();
+#else
     if (thing.size()<8 && detThreads>0){
       detThreads--;
       imageBuffer.clear();
       imageBuffer.push_back(gray);
-      thread detectThread(detetectAndTrack);
+      thread detectThread(detectAndTrack);
       detectThread.detach();
     }
     else{
@@ -71,6 +78,7 @@ int main( int argc, const char** argv ){
     }
     thread updateThread(updateLoop);
     updateThread.join();
+#endif
 #ifdef showTrack
     for ( int i=0;i <thing.size(); i++){
       for (int j=0; j< thing[i].points.size();j++){
@@ -93,7 +101,7 @@ int main( int argc, const char** argv ){
     putText(frame, sstm.str(),Point2f(10, 10), CV_FONT_HERSHEY_COMPLEX, .6, Scalar(255, 0, 255), 1, 1 ); 
 #endif
     imshow("main", frame);
-    waitKey(1);
+    waitKey(50001);
   }
 }
 
@@ -130,7 +138,7 @@ vector<Point2f> keyPoint2Point2f(vector<KeyPoint> keyPoints){
 }
 
 
-void detetectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
+void detectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
 #ifdef timeLoops
   timeval tickD, tockD;
   gettimeofday(&tickD, NULL);
@@ -166,7 +174,7 @@ void detetectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
       sstm << "mask" << numberOfTags++;
       string result = sstm.str();
       tmpTagRegion.push_back(TagRegion(keyPoint2Point2f(keyPoint), *r, result, captureSize));
-//      namedWindow(result, CV_WINDOW_NORMAL);
+      namedWindow(result, CV_WINDOW_NORMAL);
     }
   }
   for (int region = 0; region < tmpTagRegion.size(); region++){

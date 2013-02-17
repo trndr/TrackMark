@@ -99,18 +99,29 @@ Point2f TagRegion::centreMass(Mat gray){
   vector<vector<Point> > contours;
   vector<Vec4i> hierarchy;
 
-  Canny(blured, canny, 10, 20, 3);
+  int cannyLow=15;
+  Canny(gray, canny, cannyLow, cannyLow*3, 3);
   findContours(canny, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
+  Mat draw;
+  cvtColor(gray, draw, CV_GRAY2RGB);
 
 //  vector<Moments> mu(contours.size() );
+
+  RNG rng(12345);
   vector<Moments> mu;
+  cout << this->name << endl;
+  cout << gray.size().width*gray.size().height << endl;
   for( int i = 0; i < contours.size(); i++ ){
-    if(contourArea(contours[i])>100){
+    if(contourArea(contours[i])>600){
+      Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+      cout << contourArea(contours[i])<<endl;
+      drawContours(draw, contours, i, color, 1, 8, hierarchy, 0, Point() );
       mu.push_back(moments(contours[i], false));
     }
 //    mu[i] = moments( contours[i], false );
   }
 //  exit(1);
+  cout << endl;
 
   ///  Get the mass centers:
   vector<Point2f> mc;//( contours.size() );
@@ -120,6 +131,8 @@ Point2f TagRegion::centreMass(Mat gray){
     mc.push_back(tmp);
   }
   Point2f mean=accumulate(mc.begin(), mc.end(), Point2f(0.0f,0.0f))*(1.0f/mc.size());
+
+  imshow(this->name, draw);
   return mean;
 }
 
