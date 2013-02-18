@@ -99,7 +99,8 @@ Point2f TagRegion::centreMass(Mat gray){
   vector<vector<Point> > contours;
   vector<Vec4i> hierarchy;
 
-  int cannyLow=5;
+  int cannyLow=15;
+  resize(gray, gray, gray.size()*2);
   Canny(gray, canny, cannyLow, cannyLow*3, 3, true);
   findContours(canny, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
   Mat draw;
@@ -107,53 +108,43 @@ Point2f TagRegion::centreMass(Mat gray){
 
 //  vector<Moments> mu(contours.size() );
 
-  RNG rng(12345);
+//  RNG rng(12345);
   vector<Moments> mu;
-  Mat mask=Mat::zeros(gray.size(), CV_8UC1);
-  cout << this->name << endl;
-  cout << gray.size().width*gray.size().height << endl;
+//  Mat mask=Mat::zeros(gray.size(), CV_8UC1);
+//  cout << this->name << endl;a
+//  cout << gray.size().width*gray.size().height << endl;
+//  vector<vector<Point>> interestingContors;
+  vector<Point2f> mc;
   for( unsigned int i = 0; i < contours.size(); i++ ){
     if(contourArea(contours[i])>400){
-    	Mat contourImage=Mat::zeros(gray.size(), CV_8UC1);;
-    	vector<Vec2f> lines;
-      Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-      cout << contourArea(contours[i])<<endl;
-      mu.push_back(moments(contours[i], false));
-      drawContours(contourImage, contours, i, CV_RGB(255,255,255), 1, 8, hierarchy, 0, Point() );
-      HoughLines(contourImage, lines, 1, CV_PI/180, 15);
-      for( size_t i = 0; i < lines.size(); i++ )
-      {
-         float rho = lines[i][0], theta = lines[i][1];
-         Point pt1, pt2;
-         double a = cos(theta), b = sin(theta);
-         double x0 = a*rho, y0 = b*rho;
-         pt1.x = cvRound(x0 + 1000*(-b));
-         pt1.y = cvRound(y0 + 1000*(a));
-         pt2.x = cvRound(x0 - 1000*(-b));
-         pt2.y = cvRound(y0 - 1000*(a));
-         line( draw, pt1, pt2, Scalar(0,0,255), 1, CV_AA);
-      }
+/*      interestingContors.push_back(contours[i]);*/
+      Moments moment=moments(contours[i], false);
+  //cout << "works" << endl;
+      mc.push_back(Point2f( (moment.m10/moment.m00)/2 , (moment.m01/moment.m00)/2 ));
     }
-//    mu[i] = moments( contours[i], false );
   }
-//  exit(1);
-  cout << endl;
-  Mat element = getStructuringElement(0, Size( 3, 3 ), Point( 1, 1 ) );
+/*  for (unsigned int i =0;i<interestingContors.size();i++){
+    Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+    cout << contourArea(interestingContors[i])<<endl;
+    cout << color << endl;
+    drawContours(draw, interestingContors, i, color, 1, 8, hierarchy, 0, Point() );
+    drawContours(mask, interestingContors, i, CV_RGB(255, 255, 255), -1, 8, hierarchy, 0, Point() );
+//    circle(draw, tmp, 1,  CV_RGB(255,0,0), -1);
+//    cout << mc[i] << endl;
+  }
+//  Mat element = getStructuringElement( MORPH_RECT,Size( 3, 3 ), Point( 1, 1 ) );
 
-  dilate(mask, mask, element);
-  erode(mask, mask, element);
-  //dilate(mask, mask, element);
+
   ///  Get the mass centers:
-  vector<Point2f> mc;//( contours.size() );
  // vector<Point2f> mcR( contours.size() );
-  for( unsigned int i = 0; i < mu.size(); i++ ){
+  /*for( unsigned int i = 0; i < mu.size(); i++ ){
     Point2f tmp = Point2f( mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 );
     mc.push_back(tmp);
-  }
+  }*/
   Point2f mean=accumulate(mc.begin(), mc.end(), Point2f(0.0f,0.0f))*(1.0f/mc.size());
-  Mat tmp;
+/*  Mat tmp;
   draw.copyTo(tmp, mask);
-  imshow(this->name, draw);
+  imshow(this->name, tmp);*/
   return mean;
 }
 

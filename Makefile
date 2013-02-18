@@ -1,10 +1,10 @@
 CFLAGS=`pkg-config opencv --cflags` -std=gnu++0x -pthread
 LIBS=`pkg-config opencv --libs`
 
-all: tracker
+all: run
 
 run: tracker
-	./tracker ../printerManualRecord.mp4 cascades/square2/cascade.xml
+	./tracker ../Tardis.mp4 cascades/square2/cascade.xml
 
 time: tracker
 	time ./tracker ../Tardis2.mp4 cascades/square2/cascade.xml

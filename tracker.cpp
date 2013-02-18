@@ -102,7 +102,7 @@ int main( int argc, const char** argv ){
 #endif
     imshow("main", frame);
     cout<<"updated"<<endl;
-    waitKey(500);
+    waitKey(1);
   }
 }
 
@@ -175,7 +175,6 @@ void detectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
       sstm << "mask" << numberOfTags++;
       string result = sstm.str();
       tmpTagRegion.push_back(TagRegion(keyPoint2Point2f(keyPoint), *r, result, captureSize));
-      namedWindow(result, CV_WINDOW_NORMAL);
     }
   }
   for (unsigned int region = 0; region < tmpTagRegion.size(); region++){
