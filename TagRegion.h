@@ -1,6 +1,14 @@
-#ifndef TAGREGION_H
-#define TAGREGION_H
+/*
+ * TagRegion.h
+ *
+ *  Created on: 17 Feb 2013
+ *      Author: trndr
+ */
+
 #include <cv.h>
+#ifndef TAGREGION_H_
+#define TAGREGION_H_
+
 using namespace std;
 using namespace cv;
 class TagRegion{
@@ -31,7 +39,8 @@ class TagRegion{
   //TagRegion(vector<Point2f> points, Rect ROI);
   TagRegion(vector<Point2f> points, Rect ROI, string name, Size matrixSize);
   void update(Mat oldGray, Mat Gray);
-  
+
 
 };
-#endif
+
+#endif /* TAGREGION_H_ */

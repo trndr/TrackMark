@@ -43,7 +43,6 @@ int main( int argc, const char** argv ){
   captureSize=Size(capture.get(CV_CAP_PROP_FRAME_WIDTH), capture.get(CV_CAP_PROP_FRAME_HEIGHT));
   cascade.load(argv[2]);
 //  capture.set(CV_CAP_PROP_POS_FRAMES, 1580);
-//  cout << capture.get(CV_CAP_PROP_POS_FRAMES) << endl;
   namedWindow("main", CV_WINDOW_NORMAL);
 #ifdef FPS
   timeval tickM, tockM;
@@ -52,7 +51,8 @@ int main( int argc, const char** argv ){
   cvtColor(frame, gray, CV_RGB2GRAY);
   int play=1;
   while(1){
-#ifdef FPS    
+		cout<<argv[1]<<endl;
+#ifdef FPS
     gettimeofday(&tickM, NULL);
 #endif
     gray.copyTo(oldGray);
@@ -80,28 +80,29 @@ int main( int argc, const char** argv ){
     updateThread.join();
 #endif
 #ifdef showTrack
-    for ( int i=0;i <thing.size(); i++){
-      for (int j=0; j< thing[i].points.size();j++){
+    for (unsigned int i=0;i <thing.size(); i++){
+      for (unsigned int j=0; j< thing[i].points.size();j++){
         circle(frame, thing[i].points[j], 3,  CV_RGB(255,0,0), -1);
       }
       std::stringstream sstm;
       sstm << "(" << thing[i].ROI.x << ", " << thing[i].ROI.y << ", " << thing[i].size << ") " << thing[i].name;
       string result = sstm.str();
-      putText(frame, result,Point2f(thing[i].ROI.x, thing[i].ROI.y), CV_FONT_HERSHEY_COMPLEX, .6, Scalar(255, 0, 255), 1, 1 ); 
+      putText(frame, result,Point2f(thing[i].ROI.x, thing[i].ROI.y), CV_FONT_HERSHEY_COMPLEX, .6, Scalar(255, 0, 255), 1, 1 );
       rectangle(frame, thing[i].ROI, CV_RGB(255,0,0));
     }
 #endif
-    for (int i=0;i<thing.size();i++){
+    for (unsigned int i=0;i<thing.size();i++){
       circle(frame, thing[i].centre, 3, CV_RGB(255, 0, 0), -1);
     }
 #ifdef FPS
     gettimeofday(&tockM, NULL);
     std::stringstream sstm;
     sstm << (1000/(((double)tockM.tv_sec-(double)tickM.tv_sec)*1000 + ((double)tockM.tv_usec-(double)tickM.tv_usec)/1000));
-    putText(frame, sstm.str(),Point2f(10, 10), CV_FONT_HERSHEY_COMPLEX, .6, Scalar(255, 0, 255), 1, 1 ); 
+    putText(frame, sstm.str(),Point2f(10, 10), CV_FONT_HERSHEY_COMPLEX, .6, Scalar(255, 0, 255), 1, 1 );
 #endif
     imshow("main", frame);
-    waitKey(50001);
+    cout<<"updated"<<endl;
+    waitKey(500);
   }
 }
 
@@ -115,7 +116,7 @@ void updateLoop(){
 #endif
     if (thing.size()>0){
       tagRegionMutex.lock();
-      for ( int i=0;i <thing.size(); i++){
+      for (unsigned int i=0;i <thing.size(); i++){
         thing[i].update(oldGray, gray);
       }
     tagRegionMutex.unlock();
@@ -144,7 +145,7 @@ void detectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
   gettimeofday(&tickD, NULL);
 #endif
   haarMutex.lock();
-  
+
   vector<Rect> trackers;
   Mat mask;
   vector< vector<Point2f> > keyPoints;
@@ -156,7 +157,7 @@ void detectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
   vector<TagRegion> tmpTagRegion;
   cascade.detectMultiScale(imageBuffer[0], trackers);
   int numberOfTags=tmpTagRegion2.size();
-  
+
   for(vector<Rect>::const_iterator r = trackers.begin(); r != trackers.end(); r++){
     int add = 1;
     for (vector<TagRegion>::const_iterator t = tmpTagRegion2.begin(); t != tmpTagRegion2.end(); t++){
@@ -177,9 +178,9 @@ void detectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
       namedWindow(result, CV_WINDOW_NORMAL);
     }
   }
-  for (int region = 0; region < tmpTagRegion.size(); region++){
+  for (unsigned int region = 0; region < tmpTagRegion.size(); region++){
     imageBufferMutex.lock();
-    for (int image = 0; image < imageBuffer.size()-1;image++){
+    for (unsigned int image = 0; image < imageBuffer.size()-1;image++){
       tmpTagRegion[region].update(imageBuffer[image], imageBuffer[image+1]);
     }
     imageBufferMutex.unlock();
