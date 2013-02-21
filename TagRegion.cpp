@@ -19,7 +19,6 @@ TagRegion::TagRegion(vector<Point2f> pointsOld, vector<Point2f> points, Rect ROI
 */
 void TagRegion::update(Mat oldGray, Mat gray){
   this->pointsOld=this->points;
-
   Rect increasedROI=growRegionOfInterest(this->ROI, 5);
   this->ROI.x-=increasedROI.x;
   this->ROI.y-=increasedROI.y;
@@ -42,10 +41,8 @@ void TagRegion::update(Mat oldGray, Mat gray){
   this->ROI=nextROI;
   this->ROI.x+=increasedROI.x;
   this->ROI.y+=increasedROI.y;
-  this->centre=centreMass(gray(ROI));
-  this->centre.x+=ROI.x;
-  this->centre.y+=ROI.y;
-  calculateSize(gray);
+  centreMass(gray(this->ROI));
+  //calculateSize(gray);
 }
 
 Rect TagRegion::rectangleFlowDest(){
@@ -93,8 +90,6 @@ Rect TagRegion::growRegionOfInterest(Rect original, double factor){
 
 Point2f TagRegion::centreMass(Mat gray){
   Mat canny;
-  Mat blured;
-  blur(gray, blured, Size(3,3));
 
   vector<vector<Point> > contours;
   vector<Vec4i> hierarchy;
@@ -106,32 +101,44 @@ Point2f TagRegion::centreMass(Mat gray){
   Mat draw;
   cvtColor(gray, draw, CV_GRAY2RGB);
 
-//  vector<Moments> mu(contours.size() );
 
-//  RNG rng(12345);
-  vector<Moments> mu;
-//  Mat mask=Mat::zeros(gray.size(), CV_8UC1);
-//  cout << this->name << endl;a
+  Mat mask=Mat::zeros(gray.size(), CV_8UC1);
+
+  cout << this->name << endl;
 //  cout << gray.size().width*gray.size().height << endl;
-//  vector<vector<Point>> interestingContors;
   vector<Point2f> mc;
+  unsigned int area=0;
+  unsigned countourCounter;
+
   for( unsigned int i = 0; i < contours.size(); i++ ){
-    if(contourArea(contours[i])>400){
-/*      interestingContors.push_back(contours[i]);*/
+    unsigned int areaOfThis = contourArea(contours[i]);
+    cout << areaOfThis << endl;
+    if(areaOfThis>400){
+      if (areaOfThis>area){
+        countourCounter=i;
+      }
       Moments moment=moments(contours[i], false);
-  //cout << "works" << endl;
-      mc.push_back(Point2f( (moment.m10/moment.m00)/2 , (moment.m01/moment.m00)/2 ));
+      mc.push_back(Point2f( (moment.m10/moment.m00) , (moment.m01/moment.m00) ));
+      //drawContours(mask, contours, i, CV_RGB(255, 255, 255), -1, 8, hierarchy, 0, Point() );
+      drawContours(draw, contours, i, CV_RGB(0, 255, 0), 1, 8, hierarchy, 0, Point() );
     }
   }
+  Mat tmp;
+  draw.copyTo(tmp, mask);
+  imshow(this->name, draw);
+//  if(mc.size()<1){
+    waitKey(50);
+//  }
+  
+  
 /*  for (unsigned int i =0;i<interestingContors.size();i++){
     Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
     cout << contourArea(interestingContors[i])<<endl;
     cout << color << endl;
-    drawContours(draw, interestingContors, i, color, 1, 8, hierarchy, 0, Point() );
-    drawContours(mask, interestingContors, i, CV_RGB(255, 255, 255), -1, 8, hierarchy, 0, Point() );
+    drawContours(draw, interestingContors, i, color, 1, 8, hierarchy, 0, Point() );*/
 //    circle(draw, tmp, 1,  CV_RGB(255,0,0), -1);
 //    cout << mc[i] << endl;
-  }
+  //}
 //  Mat element = getStructuringElement( MORPH_RECT,Size( 3, 3 ), Point( 1, 1 ) );
 
 
@@ -142,10 +149,20 @@ Point2f TagRegion::centreMass(Mat gray){
     mc.push_back(tmp);
   }*/
   Point2f mean=accumulate(mc.begin(), mc.end(), Point2f(0.0f,0.0f))*(1.0f/mc.size());
-/*  Mat tmp;
-  draw.copyTo(tmp, mask);
-  imshow(this->name, tmp);*/
-  return mean;
+//  Mat tmp;
+  cout << mean <<endl;
+  //circle(draw, mean, 3,  CV_RGB(255,0,0), -1);
+  this->centre=mean*0.5;
+  this->centre.x+=this->ROI.x;
+  this->centre.y+=this->ROI.y;
+  Rect boundingRectangle = boundingRect(contours[countourCounter]);
+  //rectangle(draw, growRegionOfInterest(boundingRectangle, 1.35), CV_RGB(0,255,0), 1);
+  this->ROI.x=this->ROI.x+boundingRectangle.x/2;
+  this->ROI.y=this->ROI.y+boundingRectangle.y/2;
+  this->ROI.width=boundingRectangle.width/2;
+  this->ROI.height=boundingRectangle.height/2;
+  this->ROI=growRegionOfInterest(this->ROI, 1.4);
+
 }
 
 void TagRegion::calculateSize(Mat gray){

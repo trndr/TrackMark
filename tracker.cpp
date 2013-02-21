@@ -8,9 +8,9 @@
 #include <sys/time.h>
 
 #define FPS
-#define timeLoops
 #define showTrack
 #define SingleThread
+
 
 using namespace cv;
 using namespace std;
@@ -51,7 +51,6 @@ int main( int argc, const char** argv ){
   cvtColor(frame, gray, CV_RGB2GRAY);
   int play=1;
   while(1){
-		cout<<argv[1]<<endl;
 #ifdef FPS
     gettimeofday(&tickM, NULL);
 #endif
@@ -101,8 +100,7 @@ int main( int argc, const char** argv ){
     putText(frame, sstm.str(),Point2f(10, 10), CV_FONT_HERSHEY_COMPLEX, .6, Scalar(255, 0, 255), 1, 1 );
 #endif
     imshow("main", frame);
-    cout<<"updated"<<endl;
-    waitKey(1);
+    waitKey(10);
   }
 }
 
@@ -175,6 +173,8 @@ void detectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
       sstm << "mask" << numberOfTags++;
       string result = sstm.str();
       tmpTagRegion.push_back(TagRegion(keyPoint2Point2f(keyPoint), *r, result, captureSize));
+      namedWindow(result, CV_WINDOW_NORMAL);
+
     }
   }
   for (unsigned int region = 0; region < tmpTagRegion.size(); region++){
