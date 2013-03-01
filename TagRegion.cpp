@@ -1,6 +1,7 @@
 #include "TagRegion.h"
 #include <highgui.h>
 
+
 TagRegion::TagRegion(vector<Point2f> points, Rect ROI, string name, Size matrixSize){
   this->name=name;
   this->pointsOld=points;
@@ -63,6 +64,7 @@ Rect TagRegion::rectangleFlowDest(){
   rectangleThing.push_back(Point2f(this->ROI.x+ this->ROI.width, this->ROI.y));
   rectangleThing.push_back(Point2f(this->ROI.x, this->ROI.y+this->ROI.height));
   rectangleThing.push_back(Point2f(this->ROI.x+ this->ROI.width, this->ROI.y+this->ROI.height));
+  rectangleThing.push_back(this->centre);
 
   vector <Point2f> rectangleThing2;
   //transform the square and remake the ROI from the transformed square
@@ -76,6 +78,7 @@ Rect TagRegion::rectangleFlowDest(){
   int rectWidth=(rectangleThing[1].x+rectangleThing[3].x+1)/2-rectX;
   int rectHeight=(rectangleThing[2].y+rectangleThing[3].y+1)/2-rectY;
   Rect newROI=Rect(rectX, rectY, rectWidth, rectHeight);
+  this->centre=rectangleThing[4];
   return newROI;
 }
 
@@ -104,7 +107,7 @@ Point2f TagRegion::centreMass(Mat gray){
 
   Mat mask=Mat::zeros(gray.size(), CV_8UC1);
 
-  cout << this->name << endl;
+  //cout << this->name << endl;
 //  cout << gray.size().width*gray.size().height << endl;
   vector<Point2f> mc;
   unsigned int area=0;
@@ -112,7 +115,7 @@ Point2f TagRegion::centreMass(Mat gray){
 
   for( unsigned int i = 0; i < contours.size(); i++ ){
     unsigned int areaOfThis = contourArea(contours[i]);
-    cout << areaOfThis << endl;
+//    cout << areaOfThis << endl;
     if(areaOfThis>400){
       if (areaOfThis>area){
         countourCounter=i;
@@ -123,11 +126,11 @@ Point2f TagRegion::centreMass(Mat gray){
       drawContours(draw, contours, i, CV_RGB(0, 255, 0), 1, 8, hierarchy, 0, Point() );
     }
   }
-  Mat tmp;
-  draw.copyTo(tmp, mask);
-  imshow(this->name, draw);
+//  Mat tmp;
+//  draw.copyTo(tmp, mask);
+//  imshow(this->name, draw);
 //  if(mc.size()<1){
-    waitKey(50);
+//    waitKey(50);
 //  }
   
   
@@ -148,20 +151,25 @@ Point2f TagRegion::centreMass(Mat gray){
     Point2f tmp = Point2f( mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 );
     mc.push_back(tmp);
   }*/
-  Point2f mean=accumulate(mc.begin(), mc.end(), Point2f(0.0f,0.0f))*(1.0f/mc.size());
-//  Mat tmp;
-  cout << mean <<endl;
-  //circle(draw, mean, 3,  CV_RGB(255,0,0), -1);
-  this->centre=mean*0.5;
-  this->centre.x+=this->ROI.x;
-  this->centre.y+=this->ROI.y;
-  Rect boundingRectangle = boundingRect(contours[countourCounter]);
-  //rectangle(draw, growRegionOfInterest(boundingRectangle, 1.35), CV_RGB(0,255,0), 1);
-  this->ROI.x=this->ROI.x+boundingRectangle.x/2;
-  this->ROI.y=this->ROI.y+boundingRectangle.y/2;
-  this->ROI.width=boundingRectangle.width/2;
-  this->ROI.height=boundingRectangle.height/2;
-  this->ROI=growRegionOfInterest(this->ROI, 1.4);
+  if (mc.size()>0){
+    Point2f mean=accumulate(mc.begin(), mc.end(), Point2f(0.0f,0.0f))*(1.0f/mc.size());
+  //  Mat tmp;
+//    cout << mean <<endl;
+    //circle(draw, mean, 3,  CV_RGB(255,0,0), -1);
+    this->centre=mean*0.5;
+    this->centre.x+=this->ROI.x;
+    this->centre.y+=this->ROI.y;
+    Rect boundingRectangle = boundingRect(contours[countourCounter]);
+    //rectangle(draw, growRegionOfInterest(boundingRectangle, 1.35), CV_RGB(0,255,0), 1);
+    this->ROI.x=this->ROI.x+boundingRectangle.x/2;
+    this->ROI.y=this->ROI.y+boundingRectangle.y/2;
+    this->ROI.width=boundingRectangle.width/2;
+    this->ROI.height=boundingRectangle.height/2;
+    this->ROI=growRegionOfInterest(this->ROI, 1.4);
+  }
+  else{
+    this->ROI=growRegionOfInterest(this->ROI, 2);
+  }
 
 }
 
@@ -191,3 +199,6 @@ void TagRegion::calculateSize(Mat gray){
   this->size=sum(threshed)[0];
 }
 
+bool operator<(const TagRegion & a,const TagRegion &other){
+  return a.centre.x<other.centre.x;
+}

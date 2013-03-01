@@ -9,7 +9,7 @@
 
 #define FPS
 #define showTrack
-#define SingleThread
+#define SingleThreadOff
 
 
 using namespace cv;
@@ -17,7 +17,9 @@ using namespace std;
 
 
 void detectAndTrack();//VideoCapture& capture, CascadeClassifier& cascade);
+void updateLoopO(vector<TagRegion>* tags);
 void updateLoop();
+void drawTags(vector<TagRegion>* tags);
 void displayLoop();
 vector<Point2f> keyPoint2Point2f(vector<KeyPoint> keyPoints);
 //vector<Point2f> detetectAndFlow(VideoCapture& capture, CascadeClassifier& cascade);
@@ -37,6 +39,10 @@ GoodFeaturesToTrackDetector detector(3, 0.1,  15.0);
 
 vector<Mat> imageBuffer;
 mutex imageBufferMutex;
+vector<TagRegion> topTags;
+vector<TagRegion> headTags;
+vector<TagRegion> bedTags;
+vector<TagRegion> bottomTags;
 int main( int argc, const char** argv ){
   //capture.open(0);
   capture.open(argv[1]);
@@ -50,6 +56,7 @@ int main( int argc, const char** argv ){
   capture >> frame;
   cvtColor(frame, gray, CV_RGB2GRAY);
   int play=1;
+  int sorted=0;
   while(1){
 #ifdef FPS
     gettimeofday(&tickM, NULL);
@@ -63,36 +70,131 @@ int main( int argc, const char** argv ){
     detectAndTrack();
     updateLoop();
 #else
-    if (thing.size()<8 && detThreads>0){
-      detThreads--;
-      imageBuffer.clear();
-      imageBuffer.push_back(gray);
-      thread detectThread(detectAndTrack);
-      detectThread.detach();
+    if(!sorted){
+      if (thing.size()<8){
+        if (detThreads>0){
+          detThreads--;
+          imageBuffer.clear();
+          imageBuffer.push_back(gray);
+          thread detectThread(detectAndTrack);
+          detectThread.detach();
+        }
+        else{
+          imageBufferMutex.lock();
+          imageBuffer.push_back(gray);
+          imageBufferMutex.unlock();
+        }
+        thread updateThread(updateLoop);
+        updateThread.join();
+      }
+      else{
+        thread updateThread(updateLoop);
+        updateThread.join();
+        Mat centrePointsToGroup= Mat::zeros(thing.size(), 1, CV_32F);
+        for (int i=0; i<thing.size(); i++){
+          centrePointsToGroup.at<float>(i)=thing[i].centre.y;
+        }
+        Mat groupings;
+        Mat centers;
+        kmeans(centrePointsToGroup, 4, groupings, TermCriteria(CV_TERMCRIT_EPS, 1000, 0.01), 4, KMEANS_PP_CENTERS, centers );
+        Mat centersSorted;
+        cv::sort(centers, centersSorted, CV_SORT_EVERY_COLUMN + CV_SORT_ASCENDING);
+        for (int i = 0; i<4;i++){
+          for (int j =0;j<thing.size();j++){
+            if (groupings.at<int>(0,j)==i){
+              if (centers.at<float>(0,i)==centersSorted.at<float>(0,0)){
+                topTags.push_back(thing[j]);
+              }
+              if (centers.at<float>(0,i)==centersSorted.at<float>(0,1)){
+                headTags.push_back(thing[j]);
+              }
+              if (centers.at<float>(0,i)==centersSorted.at<float>(0,2)){
+                bedTags.push_back(thing[j]);
+              }
+              if (centers.at<float>(0,i)==centersSorted.at<float>(0,3)){
+                bottomTags.push_back(thing[j]);
+              }
+            }
+          }
+        }
+        sort(topTags.begin(), topTags.end());
+        sort(bedTags.begin(), bedTags.end());
+        sort(bottomTags.begin(), bottomTags.end());
+        for (int i=0;i<topTags.size();i++){
+          char nameString[21];
+          sprintf(nameString, "top %i", i);
+          topTags[i].name=nameString;
+        }
+        for (int i=0;i<bedTags.size();i++){
+          char nameString[21];
+          sprintf(nameString, "bed %i", i);
+          bedTags[i].name=nameString;
+        }
+        for (int i=0;i<bottomTags.size();i++){
+          char nameString[21];
+          sprintf(nameString, "bottom %i", i);
+          bottomTags[i].name=nameString;
+        }
+        sorted = 1;
+      }
     }
     else{
-      imageBufferMutex.lock();
-      imageBuffer.push_back(gray);
-      imageBufferMutex.unlock();
+      thread updateTop(updateLoopO, &topTags);
+      thread updateHead(updateLoopO, &headTags);
+      thread updateBed(updateLoopO, &bedTags);
+      thread updateBottom(updateLoopO, &bottomTags);
+      updateTop.join();
+      updateHead.join();
+      updateBed.join();
+      updateBottom.join();
     }
-    thread updateThread(updateLoop);
-    updateThread.join();
 #endif
 #ifdef showTrack
-    for (unsigned int i=0;i <thing.size(); i++){
-      for (unsigned int j=0; j< thing[i].points.size();j++){
-        circle(frame, thing[i].points[j], 3,  CV_RGB(255,0,0), -1);
+    if (!sorted){
+      for (unsigned int i=0;i <thing.size(); i++){
+        for (unsigned int j=0; j< thing[i].points.size();j++){
+          circle(frame, thing[i].points[j], 3,  CV_RGB(255,0,0), -1);
+        }
+        std::stringstream sstm;
+        sstm << thing[i].name << "(" << thing[i].centre.x << ", " << thing[i].centre.y << ")";//thing[i].ROI.x << ", " << thing[i].ROI.y << ", " << thing[i].size << ") " << thing[i].name;
+        string result = sstm.str();
+        putText(frame, result,Point2f(thing[i].ROI.x, thing[i].ROI.y), CV_FONT_HERSHEY_COMPLEX, .6, Scalar(255, 0, 255), 1, 1 );
+        rectangle(frame, thing[i].ROI, CV_RGB(255,0,0));
       }
-      std::stringstream sstm;
-      sstm << "(" << thing[i].ROI.x << ", " << thing[i].ROI.y << ", " << thing[i].size << ") " << thing[i].name;
-      string result = sstm.str();
-      putText(frame, result,Point2f(thing[i].ROI.x, thing[i].ROI.y), CV_FONT_HERSHEY_COMPLEX, .6, Scalar(255, 0, 255), 1, 1 );
-      rectangle(frame, thing[i].ROI, CV_RGB(255,0,0));
+      for (unsigned int i=0;i<thing.size();i++){
+        circle(frame, thing[i].centre, 3, CV_RGB(255, 0, 0), -1);
+      }
     }
+    else{
+      drawTags(&topTags);
+      drawTags(&headTags);
+      drawTags(&bedTags);
+      drawTags(&bottomTags);
+      vector<Point3f> pointsImage;
+      pointsImage.push_back(Point3f(topTags[0].centre.x, topTags[0].centre.y, topTags[0].size));
+      pointsImage.push_back(Point3f(topTags[1].centre.x, topTags[1].centre.y, topTags[1].size));
+      pointsImage.push_back(Point3f(bottomTags[0].centre.x, bottomTags[0].centre.y, topTags[0].size));
+      pointsImage.push_back(Point3f(bottomTags[1].centre.x, bottomTags[1].centre.y, topTags[1].size));
+      vector<Point3f> pointsWorld;
+      pointsWorld.push_back(Point3f(1000,200, 30000));
+      pointsWorld.push_back(Point3f(1500,200, 30000));
+      pointsWorld.push_back(Point3f(500,2000, 30000));
+      pointsWorld.push_back(Point3f(1000,2000, 30000));
+
+      Mat trans(3,4,CV_64F);
+      vector<uchar> inliners;
+      estimateAffine3D(pointsWorld, pointsImage, trans, inliners);
+      cout << trans << endl;
+      vector<Point3f> transfromed = pointsWorld;
+//      perspectiveTransform(pointsWorld, transfromed, trans);
+      for (int i = 0; i<transfromed.size();i++){
+        cout << i << endl;
+//        cout << (transfromed[i].x) << endl;
+      }
+
+    }
+
 #endif
-    for (unsigned int i=0;i<thing.size();i++){
-      circle(frame, thing[i].centre, 3, CV_RGB(255, 0, 0), -1);
-    }
 #ifdef FPS
     gettimeofday(&tockM, NULL);
     std::stringstream sstm;
@@ -107,13 +209,32 @@ int main( int argc, const char** argv ){
 void displayLoop(){
 }
 
+void drawTags(vector<TagRegion>* tags){
+  for (unsigned int i=0;i <(*tags).size(); i++){
+    for (unsigned int j=0; j< (*tags)[i].points.size();j++){
+      circle(frame, (*tags)[i].points[j], 3,  CV_RGB(255,0,0), -1);
+    }
+    std::stringstream sstm;
+    sstm << (*tags)[i].name << "(" << (*tags)[i].centre.x << ", " << (*tags)[i].centre.y << ")";//thing[i].ROI.x << ", " << thing[i].ROI.y << ", " << thing[i].size << ") " << thing[i].name;
+    string result = sstm.str();
+    putText(frame, result,Point2f((*tags)[i].ROI.x, (*tags)[i].ROI.y), CV_FONT_HERSHEY_COMPLEX, .6, Scalar(255, 0, 255), 1, 1 );
+    rectangle(frame, (*tags)[i].ROI, CV_RGB(255,0,0));
+    circle(frame, (*tags)[i].centre, 3, CV_RGB(255, 0, 0), -1);
+  }
+}
+void updateLoopO(vector<TagRegion>* tags){
+  for (unsigned int i=0;i <(*tags).size(); i++){
+    (*tags)[i].update(oldGray, gray);
+  }
+}
+
 void updateLoop(){
 #ifdef timeLoops
     timeval tick, tock;
     gettimeofday(&tick, NULL);
 #endif
     if (thing.size()>0){
-      tagRegionMutex.lock();
+    tagRegionMutex.lock();
       for (unsigned int i=0;i <thing.size(); i++){
         thing[i].update(oldGray, gray);
       }
@@ -173,7 +294,7 @@ void detectAndTrack()/*VideoCapture& capture, CascadeClassifier& cascade)*/{
       sstm << "mask" << numberOfTags++;
       string result = sstm.str();
       tmpTagRegion.push_back(TagRegion(keyPoint2Point2f(keyPoint), *r, result, captureSize));
-      namedWindow(result, CV_WINDOW_NORMAL);
+//      namedWindow(result, CV_WINDOW_NORMAL);
 
     }
   }

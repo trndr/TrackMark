@@ -42,5 +42,6 @@ class TagRegion{
 
 
 };
+bool operator<(const TagRegion &, const TagRegion &);
 
 #endif /* TAGREGION_H_ */
