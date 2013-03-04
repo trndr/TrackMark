@@ -31,7 +31,7 @@ class TagRegion{
   public:
     String name;
     vector<Point2f> points;
-    int size;
+    float size;
     Rect ROI;
     Point2f centre;
 

@@ -1,5 +1,6 @@
 #include "TagRegion.h"
 #include <highgui.h>
+#include <math.h>
 
 
 TagRegion::TagRegion(vector<Point2f> points, Rect ROI, string name, Size matrixSize){
@@ -43,7 +44,7 @@ void TagRegion::update(Mat oldGray, Mat gray){
   this->ROI.x+=increasedROI.x;
   this->ROI.y+=increasedROI.y;
   centreMass(gray(this->ROI));
-  //calculateSize(gray);
+  calculateSize(gray);
 }
 
 Rect TagRegion::rectangleFlowDest(){
@@ -196,7 +197,7 @@ void TagRegion::calculateSize(Mat gray){
     }
     this->size/=5;
   }*/
-  this->size=sum(threshed)[0];
+  this->size=10000/sqrt((float)sum(threshed)[0]);
 }
 
 bool operator<(const TagRegion & a,const TagRegion &other){

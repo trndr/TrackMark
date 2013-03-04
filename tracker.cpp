@@ -149,9 +149,10 @@ int main( int argc, const char** argv ){
       updateBottom.join();
     }
 #endif
-#ifdef showTrack
     if (!sorted){
-      for (unsigned int i=0;i <thing.size(); i++){
+#ifdef showTrack
+      drawTags(&thing);
+    /*  for (unsigned int i=0;i <thing.size(); i++){
         for (unsigned int j=0; j< thing[i].points.size();j++){
           circle(frame, thing[i].points[j], 3,  CV_RGB(255,0,0), -1);
         }
@@ -163,38 +164,67 @@ int main( int argc, const char** argv ){
       }
       for (unsigned int i=0;i<thing.size();i++){
         circle(frame, thing[i].centre, 3, CV_RGB(255, 0, 0), -1);
-      }
+      }*/
+#endif
     }
     else{
+#ifdef showTrack
       drawTags(&topTags);
       drawTags(&headTags);
       drawTags(&bedTags);
       drawTags(&bottomTags);
+#endif
       vector<Point3f> pointsImage;
       pointsImage.push_back(Point3f(topTags[0].centre.x, topTags[0].centre.y, topTags[0].size));
       pointsImage.push_back(Point3f(topTags[1].centre.x, topTags[1].centre.y, topTags[1].size));
-      pointsImage.push_back(Point3f(bottomTags[0].centre.x, bottomTags[0].centre.y, topTags[0].size));
-      pointsImage.push_back(Point3f(bottomTags[1].centre.x, bottomTags[1].centre.y, topTags[1].size));
-      vector<Point3f> pointsWorld;
-      pointsWorld.push_back(Point3f(1000,200, 30000));
-      pointsWorld.push_back(Point3f(1500,200, 30000));
-      pointsWorld.push_back(Point3f(500,2000, 30000));
-      pointsWorld.push_back(Point3f(1000,2000, 30000));
+      pointsImage.push_back(Point3f(bottomTags[0].centre.x, bottomTags[0].centre.y, bottomTags[0].size));
+      pointsImage.push_back(Point3f(bottomTags[1].centre.x, bottomTags[1].centre.y, bottomTags[1].size));
+      pointsImage.push_back(Point3f(headTags[0].centre.x, headTags[0].centre.y, headTags[0].size));
+      pointsImage.push_back(Point3f(bedTags[0].centre.x, bedTags[0].centre.y, bedTags[0].size));
+      pointsImage.push_back(Point3f(bedTags[1].centre.x, bedTags[1].centre.y, bedTags[1].size));
+      Mat headFrame, bedFrame, realPossitions, partial, solved;
+      headFrame=(Mat_<float>(4,4) << topTags[0].centre.x, topTags[0].centre.y, topTags[0].size, 1,
+                                    topTags[1].centre.x, topTags[1].centre.y, topTags[1].size, 1,
+                                    bottomTags[0].centre.x, bottomTags[0].centre.y, bottomTags[0].size, 1,
+                                    headTags[0].centre.x, headTags[0].centre.y, headTags[0].size, 1);
+      realPossitions=(Mat_<float>(4,1) << 120 //X possition of the top left marker
+                                        , 150 //X possition of the top right marker
+                                        , 80  //X possition of the bottom left marker
+                                        , 125 //X possition of the head marker
+                                        );
+      solve(headFrame, realPossitions, partial);
+      solved.push_back(partial.reshape(0,1));
 
-      Mat trans(3,4,CV_64F);
-      vector<uchar> inliners;
-      estimateAffine3D(pointsWorld, pointsImage, trans, inliners);
-      cout << trans << endl;
-      vector<Point3f> transfromed = pointsWorld;
-//      perspectiveTransform(pointsWorld, transfromed, trans);
-      for (int i = 0; i<transfromed.size();i++){
-        cout << i << endl;
-//        cout << (transfromed[i].x) << endl;
-      }
+      bedFrame=(Mat_<float>(4,4) << topTags[0].centre.x, topTags[0].centre.y, topTags[0].size, 1,
+                                    topTags[1].centre.x, topTags[1].centre.y, topTags[1].size, 1,
+                                    bottomTags[0].centre.x, bottomTags[0].centre.y, bottomTags[0].size, 1,
+                                    bedTags[0].centre.x, bedTags[0].centre.y, bedTags[0].size, 1);
+      realPossitions=(Mat_<float>(4,1) << 20 //Y possition of the top left marker
+                                        , 20 //Y possition of the top right marker
+                                        , 250 //Y possition of the bottom left marker
+                                        , 220 //Y possition of the left bed marker
+                                        );
+      solve(bedFrame, realPossitions, partial);
+      solved.push_back(partial.reshape(0,1));
+      realPossitions=(Mat_<float>(4,1) << 20 //Z possition of the top left marker
+                                        , 20 //Z possition of the top right marker
+                                        , 20 //Z possition of the bottom left marker
+                                        , 40 //Z possition of the head marker
+                                        );
+      solve(headFrame, realPossitions, partial);
+      solved.push_back(partial.reshape(0,1));
+      Mat forthRow = (Mat_<float>(1,4)<<0,0,0,1);
+      solved.push_back(forthRow);
 
+      Mat matImage(pointsImage, 1);
+      Mat matImage2;
+      transform(matImage, matImage2, solved);
+      cout << "(" << matImage2.at<float>(5,0) << ", ";
+      cout << matImage2.at<float>(4,1) << ", ";
+      cout << matImage2.at<float>(5,2) << ")" << endl;
+      waitKey(5000);
     }
 
-#endif
 #ifdef FPS
     gettimeofday(&tockM, NULL);
     std::stringstream sstm;
