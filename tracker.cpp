@@ -48,12 +48,15 @@ int main( int argc, const char** argv ){
   capture.open(argv[1]);
   captureSize=Size(capture.get(CV_CAP_PROP_FRAME_WIDTH), capture.get(CV_CAP_PROP_FRAME_HEIGHT));
   cascade.load(argv[2]);
+//  Mat cameraMatrix=(Mat_<float>(3,3) << 5.8068001364114616e+02, 0., 3.9861365437608777e+02, 0., 5.8129606194986047e+02, 2.2232152890941003e+02, 0., 0., 1. );
+//  Mat distCoeffs=(Mat_<float>(5,1) << 1.1857045354410395e-01, -2.2645377882099613e-01, 1.3848599412617020e-03, -8.6535512545680364e-04, 6.5155217563888132e-02);
 //  capture.set(CV_CAP_PROP_POS_FRAMES, 1580);
   namedWindow("main", CV_WINDOW_NORMAL);
 #ifdef FPS
   timeval tickM, tockM;
 #endif
   capture >> frame;
+//  undistort(frame, frame, cameraMatrix, distCoeffs);
   cvtColor(frame, gray, CV_RGB2GRAY);
   int play=1;
   int sorted=0;
@@ -63,6 +66,7 @@ int main( int argc, const char** argv ){
 #endif
     gray.copyTo(oldGray);
     capture >> frame;
+//    undistort(frame, frame, cameraMatrix, distCoeffs);
     cvtColor(frame, gray, CV_RGB2GRAY);
 #ifdef SingleThread
     imageBuffer.clear();
@@ -183,14 +187,23 @@ int main( int argc, const char** argv ){
       pointsImage.push_back(Point3f(bedTags[0].centre.x, bedTags[0].centre.y, bedTags[0].size));
       pointsImage.push_back(Point3f(bedTags[1].centre.x, bedTags[1].centre.y, bedTags[1].size));
       Mat headFrame, bedFrame, realPossitions, partial, solved;
+      /* 8.7,3,0
+       * 16.1,3.1,0
+       * 5.6,20.7,0
+       * 11.8,20.8,0
+       * 18.2,20.8,0
+       * ?,16.4,?
+       * ?,16.5,?
+       * 11.2,?,9.5
+       */
       headFrame=(Mat_<float>(4,4) << topTags[0].centre.x, topTags[0].centre.y, topTags[0].size, 1,
                                     topTags[1].centre.x, topTags[1].centre.y, topTags[1].size, 1,
                                     bottomTags[0].centre.x, bottomTags[0].centre.y, bottomTags[0].size, 1,
                                     headTags[0].centre.x, headTags[0].centre.y, headTags[0].size, 1);
-      realPossitions=(Mat_<float>(4,1) << 120 //X possition of the top left marker
-                                        , 150 //X possition of the top right marker
-                                        , 80  //X possition of the bottom left marker
-                                        , 125 //X possition of the head marker
+      realPossitions=(Mat_<float>(4,1) << 87 //X possition of the top left marker
+                                        , 161 //X possition of the top right marker
+                                        , 118  //X possition of the bottom left marker
+                                        , 112 //X possition of the head marker
                                         );
       solve(headFrame, realPossitions, partial);
       solved.push_back(partial.reshape(0,1));
@@ -199,17 +212,17 @@ int main( int argc, const char** argv ){
                                     topTags[1].centre.x, topTags[1].centre.y, topTags[1].size, 1,
                                     bottomTags[0].centre.x, bottomTags[0].centre.y, bottomTags[0].size, 1,
                                     bedTags[0].centre.x, bedTags[0].centre.y, bedTags[0].size, 1);
-      realPossitions=(Mat_<float>(4,1) << 20 //Y possition of the top left marker
-                                        , 20 //Y possition of the top right marker
-                                        , 250 //Y possition of the bottom left marker
-                                        , 220 //Y possition of the left bed marker
+      realPossitions=(Mat_<float>(4,1) << 30 //Y possition of the top left marker
+                                        , 31 //Y possition of the top right marker
+                                        , 208 //Y possition of the bottom left marker
+                                        , 164 //Y possition of the left bed marker
                                         );
       solve(bedFrame, realPossitions, partial);
       solved.push_back(partial.reshape(0,1));
-      realPossitions=(Mat_<float>(4,1) << 20 //Z possition of the top left marker
-                                        , 20 //Z possition of the top right marker
-                                        , 20 //Z possition of the bottom left marker
-                                        , 40 //Z possition of the head marker
+      realPossitions=(Mat_<float>(4,1) << 0 //Z possition of the top left marker
+                                        , 0 //Z possition of the top right marker
+                                        , 0 //Z possition of the bottom left marker
+                                        , 95 //Z possition of the head marker
                                         );
       solve(headFrame, realPossitions, partial);
       solved.push_back(partial.reshape(0,1));
@@ -219,10 +232,22 @@ int main( int argc, const char** argv ){
       Mat matImage(pointsImage, 1);
       Mat matImage2;
       transform(matImage, matImage2, solved);
-      cout << "(" << matImage2.at<float>(5,0) << ", ";
+      /*if (matImage2.at<float>(5,2) < 160){
+        cout << "ERR" << endl;
+        cout << matImage << endl;
+      }*/
+
+//      cout << "#Frame " << capture.get(CV_CAP_PROP_POS_FRAMES) << endl;
+      cout << matImage2.at<float>(5,0) << " ";
+      cout << matImage2.at<float>(5,2) << " ";
+      cout << matImage2.at<float>(4,1) << " ";
+      cout << capture.get(CV_CAP_PROP_POS_FRAMES) << endl;
+      /*
+      cout << matImage2.at<float>(5,0) << ", ";
       cout << matImage2.at<float>(4,1) << ", ";
-      cout << matImage2.at<float>(5,2) << ")" << endl;
-      waitKey(5000);
+      cout << matImage2.at<float>(5,2) << endl;
+      */
+//      waitKey(5000);
     }
 
 #ifdef FPS

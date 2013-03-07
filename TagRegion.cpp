@@ -44,7 +44,7 @@ void TagRegion::update(Mat oldGray, Mat gray){
   this->ROI.x+=increasedROI.x;
   this->ROI.y+=increasedROI.y;
   centreMass(gray(this->ROI));
-  calculateSize(gray);
+//  calculateSize(gray);
 }
 
 Rect TagRegion::rectangleFlowDest(){
@@ -123,8 +123,8 @@ Point2f TagRegion::centreMass(Mat gray){
       }
       Moments moment=moments(contours[i], false);
       mc.push_back(Point2f( (moment.m10/moment.m00) , (moment.m01/moment.m00) ));
-      //drawContours(mask, contours, i, CV_RGB(255, 255, 255), -1, 8, hierarchy, 0, Point() );
-      drawContours(draw, contours, i, CV_RGB(0, 255, 0), 1, 8, hierarchy, 0, Point() );
+      drawContours(mask, contours, i, CV_RGB(255, 255, 255), -1, 8, hierarchy, 0, Point() );
+      //drawContours(draw, contours, i, CV_RGB(0, 255, 0), 1, 8, hierarchy, 0, Point() );
     }
   }
 //  Mat tmp;
@@ -161,6 +161,8 @@ Point2f TagRegion::centreMass(Mat gray){
     this->centre.x+=this->ROI.x;
     this->centre.y+=this->ROI.y;
     Rect boundingRectangle = boundingRect(contours[countourCounter]);
+    this->size=10000/sqrt((float)sum(mask)[0]);
+
     //rectangle(draw, growRegionOfInterest(boundingRectangle, 1.35), CV_RGB(0,255,0), 1);
     this->ROI.x=this->ROI.x+boundingRectangle.x/2;
     this->ROI.y=this->ROI.y+boundingRectangle.y/2;
