@@ -13,7 +13,10 @@ profile: trackerProfile
 	./tracker ../Tardis2.mp4 cascades/square2/cascade.xml
 
 tracker: tracker.cpp TagRegion.cpp
-	g++ $(CFLAGS) -rdynamic tracker.cpp TagRegion.cpp -o tracker $(LIBS)
+	g++ $(CFLAGS) -Wall -rdynamic tracker.cpp TagRegion.cpp -o tracker $(LIBS)
+
+invProj: invProj.cpp 
+	g++ $(CFLAGS) -rdynamic invProj.cpp -o invProj $(LIBS)
 
 trackerProfile: tracker.cpp TagRegion.cpp
 	g++ $(CFLAGS) -pg -g tracker.cpp TagRegion.cpp -o tracker $(LIBS)
